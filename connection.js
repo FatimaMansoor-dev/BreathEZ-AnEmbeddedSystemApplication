@@ -1,27 +1,73 @@
-require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const uri = `mongodb+srv://benzenering032:${process.env.DB_PASSWORD}@cluster0.gyi9b.mongodb.net/?appName=Cluster0`;
+require("dotenv").config();
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const bodyParser = require("body-parser");
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
+const app = express();
+const PORT = 4000;
+
+// Middleware
+app.use(cors());
+app.use(bodyParser.json());
+
+// Connect to MongoDB Atlas 
+mongoose.connect(
+  "mongodb+srv://zobia:IuUQ7qwSI3A4mP89@cluster0.t8iy8ur.mongodb.net/sensorDB?retryWrites=true&w=majority&appName=Cluster0",
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }
+)
+.then(() => console.log("MongoDB Atlas connected successfully"))
+.catch(err => {
+  console.error("MongoDB connection error:", err);
+  process.exit(1); // Stop the server if DB connection fails
+});
+
+// Define Schema
+const sensorSchema = new mongoose.Schema({
+  temperature: { type: Number, required: true },
+  humidity: { type: Number, required: true },
+  datetime: { type: Date, default: Date.now }
+});
+
+const SensorData = mongoose.model("SensorData", sensorSchema);
+
+// Root Route (Check API Status)
+app.get("/", (req, res) => {
+  res.send("🚀 Sensor API is running...");
+});
+
+// API to Store Sensor Data
+app.post("/api/sensor", async (req, res) => {
+  try {
+    const { temperature, humidity } = req.body;
+    if (temperature === undefined || humidity === undefined) {
+      return res.status(400).json({ error: "Missing data fields" });
+    }
+
+    const newData = new SensorData({ temperature, humidity });
+    await newData.save();
+
+    res.status(201).json({ message: "Data saved successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-async function connectToDb() {
+// API to Fetch All Sensor Data (No Filtering)
+app.get("/api/sensor", async (req, res) => {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
+    // Remove filtering logic to return all documents
+    const data = await SensorData.find().sort({ datetime: 1 });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-}
+});
 
-module.exports = { connectToDb, client };
+// Start Server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});

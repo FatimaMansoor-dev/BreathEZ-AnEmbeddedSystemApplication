@@ -1,7 +1,7 @@
 const { connectToDb } = require('./connection');
 connectToDb();
 
-const sensorData = [
+const sensorData = [ 
     { datetime: "2023-03-25T12:00:00.000Z", temperature: 22, humidity: 45 },
     { datetime: "2023-03-25T12:01:00.000Z", temperature: 23, humidity: 47 },
     { datetime: "2023-03-25T12:02:00.000Z", temperature: 21, humidity: 44 },

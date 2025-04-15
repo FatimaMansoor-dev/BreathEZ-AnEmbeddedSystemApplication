@@ -60,7 +60,7 @@ const AnimatedRect = Animated.createAnimatedComponent(Rect);
 //
 function PageHeader({ title, iconUri }) {
   return (
-    <LinearGradient colors={['#654ea3', '#eaafc8']} style={headerStyles.container}>
+    <LinearGradient colors={['#00008B', '#00008B']} style={headerStyles.container}>
       {iconUri && (
         <Image source={{ uri: iconUri }} style={headerStyles.icon} resizeMode="contain" />
       )}
@@ -78,6 +78,7 @@ const headerStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 5,
+    backgroundColor: '#00008B',
   },
   icon: { width: 40, height: 40, marginRight: 10 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
@@ -132,7 +133,7 @@ function WeatherScreen() {
 
   // Fetch sensor data from server
   useEffect(() => {
-    fetch('http://192.168.0.104:3001/api/sensor-data')
+    fetch('http://192.168.241.3:4000/api/sensor')
       .then((response) => response.json())
       .then((data) => {
         setSensorData(data);
@@ -141,6 +142,7 @@ function WeatherScreen() {
       .catch((error) => console.error('Error fetching sensor data:', error));
   }, []);
 
+  // Helper to format the date-time string for other uses
   function formatDateTime(isoString) {
     if (!isoString) return '';
     const [datePart, timePartWithZ] = isoString.split('T');
@@ -149,13 +151,32 @@ function WeatherScreen() {
     const [hourStr, minuteStr] = timePart.split(':');
     const hourNum = parseInt(hourStr, 10);
     const minuteNum = parseInt(minuteStr, 10);
-    const shortMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const shortMonth = shortMonths[parseInt(month, 10) - 1];
     const hour12 = hourNum % 12 || 12;
     const ampm = hourNum < 12 ? 'AM' : 'PM';
     return `${shortMonth} ${parseInt(day, 10)} ${hour12}:${String(minuteNum).padStart(2, '0')} ${ampm}`;
   }
 
+  // New helper to format forecast time in two lines: date on one line, hour on the next.
+  function formatForecastTime(isoString) {
+    if (!isoString) return '';
+    const [datePart, timePartWithZ] = isoString.split('T');
+    const [year, month, day] = datePart.split('-');
+    const [timePart] = timePartWithZ.split('.');
+    const [hourStr, minuteStr] = timePart.split(':');
+    const hourNum = parseInt(hourStr, 10);
+    const minuteNum = parseInt(minuteStr, 10);
+    const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const shortMonth = shortMonths[parseInt(month, 10) - 1];
+    const hour12 = hourNum % 12 || 12;
+    const ampm = hourNum < 12 ? 'AM' : 'PM';
+
+    // First line: date, second line: time and AM/PM.
+    return `${shortMonth} ${parseInt(day, 10)}\n${hour12}:${String(minuteNum).padStart(2, '0')} ${ampm}`;
+  }
+
+  // Prepare forecast data using the new formatForecastTime
   const forecastData = (() => {
     if (sensorData.length === 0) return [];
     const lastEntryLocalDate = new Date(sensorData[sensorData.length - 1].datetime).toLocaleDateString();
@@ -164,7 +185,10 @@ function WeatherScreen() {
     );
     if (dataForDay.length < 24) dataForDay = sensorData.slice(-24);
     return dataForDay.map((entry, index) => ({
-      key: `${formatDateTime(entry.datetime)}-${index}`,
+      // Use a unique key based on the datetime and the index.
+      key: `${entry.datetime}-${index}`,
+      // Use the new multi-line display.
+      displayDateTime: formatForecastTime(entry.datetime),
       icon: '⛅',
       temp: `${entry.temperature}°`,
     }));
@@ -203,12 +227,12 @@ function WeatherScreen() {
 
   // Chart configuration for both charts.
   const chartConfig = {
-    backgroundGradientFrom: '#262A34',
-    backgroundGradientTo: '#262A34',
+    backgroundGradientFrom: '#00008B',
+    backgroundGradientTo: '#00008B',
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(255,255,255,${opacity})`,
     labelColor: (opacity = 1) => `rgba(255,255,255,${opacity})`,
-    fillShadowGradient: '#eaafc8',
+    fillShadowGradient: '#0000FF', // fill remains unchanged
     fillShadowGradientOpacity: 0.9,
     withInnerLines: false,
     propsForDots: { r: '5', strokeWidth: '2', stroke: '#00D2FF' },
@@ -277,13 +301,22 @@ function WeatherScreen() {
 
   return (
     <SafeAreaView style={weatherStyles.container}>
-      <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16} style={{ flex: 1 }}>
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        style={{ flex: 1 }}
+      >
         {/* Page 1: Weather Info & Forecast Cards */}
         <View style={{ width: SCREEN_WIDTH }}>
-          <LinearGradient colors={['#654ea3', '#eaafc8']} style={weatherStyles.gradientBackground}>
+          <LinearGradient colors={['#00008B', '#00008B']} style={weatherStyles.gradientBackground}>
             <View style={weatherStyles.topSection}>
               <Text style={weatherStyles.cityText}>Karachi, PK</Text>
-              <Text style={weatherStyles.currentTempText}>{currentTemp !== null ? `${currentTemp}°` : '--°'}</Text>
+              <Text style={weatherStyles.currentTempText}>
+                {currentTemp !== null ? `${currentTemp}°` : '--°'}
+              </Text>
               <Text style={weatherStyles.conditionText}>Mostly Clear</Text>
               <Text style={weatherStyles.highLowText}>H: 35°  L: 25°</Text>
               <View style={weatherStyles.cloudContainer}>
@@ -298,11 +331,23 @@ function WeatherScreen() {
               </View>
             </View>
             <View style={{ height: 160, marginTop: 20, paddingHorizontal: 10 }}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled onScroll={handleForecastScroll} scrollEventThrottle={16}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                nestedScrollEnabled
+                onScroll={handleForecastScroll}
+                scrollEventThrottle={16}
+              >
                 {forecastData.length > 0 ? (
                   forecastData.map((item, index) => (
-                    <View key={item.key} style={[weatherStyles.forecastItem, activeForecastIndex === index && weatherStyles.forecastItemActive]}>
-                      <Text style={weatherStyles.forecastTime}>{item.key.split('-')[0]}</Text>
+                    <View
+                      key={item.key}
+                      style={[
+                        weatherStyles.forecastItem,
+                        activeForecastIndex === index && weatherStyles.forecastItemActive
+                      ]}
+                    >
+                      <Text style={weatherStyles.forecastTime}>{item.displayDateTime}</Text>
                       <Text style={weatherStyles.forecastIcon}>{item.icon}</Text>
                       <Text style={weatherStyles.forecastTemp}>{item.temp}</Text>
                     </View>
@@ -317,7 +362,7 @@ function WeatherScreen() {
 
         {/* Page 2: Temperature Analysis */}
         <View style={{ width: SCREEN_WIDTH, flex: 1 }}>
-          <LinearGradient colors={['#262A34', '#262A34']} style={[weatherStyles.gradientBackground, { justifyContent: 'flex-start', paddingTop: 50 }]}>
+          <LinearGradient colors={['#00008B', '#00008B']} style={[weatherStyles.gradientBackground, { justifyContent: 'flex-start', paddingTop: 50 }]}>
             <View style={{ width: SCREEN_WIDTH, alignItems: 'center' }}>
               <PageHeader title="Temperature Analysis" iconUri="https://img.icons8.com/fluency/48/000000/sun--v1.png" />
               <View style={{ alignItems: 'center', marginVertical: 10, backgroundColor: 'lightgray' }}>
@@ -326,7 +371,7 @@ function WeatherScreen() {
                   autoPlay
                   loop
                   speed={0.5}
-                  style={{ width: SCREEN_WIDTH * 0.9, height: 200, backgroundColor: '#262A34' }}
+                  style={{ width: SCREEN_WIDTH * 0.9, height: 200, backgroundColor: '#00008B' }}
                 />
               </View>
             </View>
@@ -384,7 +429,7 @@ function WeatherScreen() {
 
         {/* Page 3: Humidity Analysis */}
         <View style={{ width: SCREEN_WIDTH, flex: 1 }}>
-          <LinearGradient colors={['#262A34', '#262A34']} style={[weatherStyles.gradientBackground, { justifyContent: 'flex-start', paddingTop: 50 }]}>
+          <LinearGradient colors={['#00008B', '#00008B']} style={[weatherStyles.gradientBackground, { justifyContent: 'flex-start', paddingTop: 50 }]}>
             <View style={{ width: SCREEN_WIDTH, alignItems: 'center' }}>
               <PageHeader title="Humidity Analysis" iconUri="https://img.icons8.com/fluency/48/000000/wet.png" />
               <View style={{ alignItems: 'center', marginVertical: 0, backgroundColor: 'lightgray' }}>
@@ -393,7 +438,7 @@ function WeatherScreen() {
                   autoPlay
                   loop
                   speed={3}
-                  style={{ width: SCREEN_WIDTH * 0.9, height: 220, backgroundColor: '#262A34',}}
+                  style={{ width: SCREEN_WIDTH * 0.9, height: 220, backgroundColor: '#00008B' }}
                 />
               </View>
             </View>
@@ -508,6 +553,7 @@ const weatherStyles = StyleSheet.create({
   cloudContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   cuteCloudImage: { width: 300, height: 300 },
   lightningEmoji: { fontSize: 56, marginLeft: -45, marginTop: 10 },
+  // Updated forecastItem style with a thin white border.
   forecastItem: {
     width: 90,
     height: 150,
@@ -516,7 +562,10 @@ const weatherStyles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 12,
     paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#fff',
   },
+  // The forecastTime style remains mostly the same; the newline is added in the text content.
   forecastTime: { color: '#fff', fontSize: 13, marginBottom: 4, textAlign: 'center' },
   forecastIcon: { fontSize: 24, marginBottom: 4 },
   forecastTemp: { color: '#fff', fontSize: 16, fontWeight: '600' },
