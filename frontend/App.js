@@ -133,7 +133,7 @@ function WeatherScreen() {
 
   // Fetch sensor data from server
   useEffect(() => {
-    fetch('http://192.168.241.3:4000/api/sensor')
+    fetch('http://192.168.98.3:4000/api/sensor')
       .then((response) => response.json())
       .then((data) => {
         setSensorData(data);
@@ -232,7 +232,7 @@ function WeatherScreen() {
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(255,255,255,${opacity})`,
     labelColor: (opacity = 1) => `rgba(255,255,255,${opacity})`,
-    fillShadowGradient: '#0000FF', // fill remains unchanged
+    fillShadowGradient: '#add8e6', // fill remains unchanged
     fillShadowGradientOpacity: 0.9,
     withInnerLines: false,
     propsForDots: { r: '5', strokeWidth: '2', stroke: '#00D2FF' },
@@ -315,8 +315,9 @@ function WeatherScreen() {
             <View style={weatherStyles.topSection}>
               <Text style={weatherStyles.cityText}>Karachi, PK</Text>
               <Text style={weatherStyles.currentTempText}>
-                {currentTemp !== null ? `${currentTemp}°` : '--°'}
-              </Text>
+  {currentTemp !== null ? `${Number(currentTemp).toFixed(2)}°` : '--°'}
+</Text>
+
               <Text style={weatherStyles.conditionText}>Mostly Clear</Text>
               <Text style={weatherStyles.highLowText}>H: 35°  L: 25°</Text>
               <View style={weatherStyles.cloudContainer}>
